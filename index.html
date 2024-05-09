@@ -123,10 +123,23 @@
             width: 100%;
             height: 100%;
             border: 1px solid lightgrey;
-            background-color: #121212;
+            background-color: black;
             color: #e0e0e0;
-            border-radius: 3px;
+            border-radius: 5px;
             padding: 0.25rem;
+        }
+
+        .menuItems {
+            display: none;
+            position: relative;
+            left: 0;
+            width: 100%;
+            height: 400px;
+            border: 1px solid #ccc;
+            padding: 10px;
+            animation: slideDown 0.5s ease-in-out forwards;
+            overflow-y: auto;
+            -webkit-font-smoothing: antialiased;
         }
 
         .sectionsContainer {
@@ -137,8 +150,20 @@
             margin-top: 30px;
         }
 
+        .template {
+            display: none;
+        }
+
         input[type="file"] {
             display: none;
+        }
+
+        .messageText {
+            height: 100px;
+            max-width: 95%;
+            overflow-y: scroll;
+            resize: none;
+            font-size: 16px;
         }
 
         @media screen and (max-width: 600px) {
@@ -169,6 +194,12 @@
 </head>
 
 <body>
+    <div class="template">
+        <div class="individualMessageTemplate">
+            <div class="messageTitle">Messsage 1</div>
+            <textarea class="messageText inputField">Message 1</textarea>
+        </div>
+    </div>
     <div class="tittle_container" style="display: none">
         <div class="tittle">What would you like to edit?</div>
     </div>
@@ -180,10 +211,10 @@
         </button>
     </div>
     <div class="chats_page">
-        <button class="go_back_button button fa fa-angle-left" id="go_back_button" onclick="goBackChatsPage()"></button>
+        <button class="go_back_button button fa fa-angle-left" onclick="goBackChatsPage()"></button>
         <div class="chats_page_container centered">
             <div class="chats_title">Chats Page</div>
-            <div style="width: 100%">
+            <div style="width: 100%; margin: 30px;">
                 <label for="chat_upload" class="custom-file-upload button fa fa-upload"></label>
                 <input id="chat_upload" type="file" />
                 <div style="display: inline-flex; margin-left: 10px">
@@ -197,7 +228,7 @@
                     <div class="sectionLabel">User name:</div>
                     <div>
                         <input class="inputField" id="userNameInput" data-initial-focus="no" value="" type="text"
-                            placeholder="" />
+                            placeholder="Enter user name" />
                     </div>
                 </section>
                 <section class="structuredInputSection" data-is-hidden-extra="no">
@@ -207,17 +238,24 @@
                             placeholder="Enter character name" />
                     </div>
                 </section>
+                <div class="deployable_menu">
+                    <button id="chatButtons" class="button" style="font-size: 15px; display: none;">Show
+                        Individual Messages</button>
+                    <div id="menuItems" class="menuItems">
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
     <div class="characters_page">
-        <button class="go_back_button button fa fa-angle-left" id="go_back_button"
-            onclick="goBackCharacterPage()"></button>
+        <button class="go_back_button button fa fa-angle-left" onclick="goBackCharacterPage()"></button>
         Characters Page
     </div>
 
     <script>
+        let isJsonLGlobal = false;
+        let dataGlobal = null;
         $(document).ready(function () {
             showSelectButtons();
             $("#edit_character").on("click", function () {
@@ -231,7 +269,26 @@
                 });
             });
             $("#chat_upload").on("change", loadChatFile);
+
+            $("#userNameInput").on("input", function () {
+                updateShowMessagesButton(dataGlobal, isJsonLGlobal);
+            });
+            $("#characterNameInput").on("input", function () {
+                updateShowMessagesButton(dataGlobal, isJsonLGlobal);
+            });
+
+
+            $("#chatButtons").click(function () {
+                $("#menuItems").fadeToggle(300, function () {
+                    let buttonText = $("#chatButtons").text();
+                    $("#chatButtons").text(buttonText === "Hide Individual Messages" ? "Show Individual Messages" : "Hide Individual Messages");
+                });
+
+            });
         });
+
+
+
 
         function loadChatFile() {
             const file = $("#chat_upload")[0].files[0];
@@ -242,7 +299,6 @@
 
                 // Check if the file type is JSONL
                 const isJsonL = file.name.endsWith(".jsonl");
-                debugger;
 
                 // Parse JSON content
                 let jsonData;
@@ -261,9 +317,39 @@
                 $("#userNameInput").val(names.username);
                 $("#characterNameInput").val(names.characterName);
                 $("#currentName").text(`Current Platform: ${names.platform}`);
+                updateShowMessagesButton(jsonData, isJsonL);
+                isJsonLGlobal = isJsonL;
+                dataGlobal = jsonData;
             };
 
             reader.readAsText(file);
+        }
+
+        function updateShowMessagesButton(data, isJsonL) {
+            const username = $("#userNameInput").val();
+            const characterName = $("#characterNameInput").val();
+            const currentName = $("#currentName").text();
+            if (username && characterName && currentName) {
+                $("#chatButtons").fadeIn(500);
+                $("#menuItems").empty();
+
+                const convertedData = convertToTurtle(data, username, characterName, isJsonL);
+                if (convertedData) {
+                    let i = 0;
+                    for (let message of convertedData.messages) {
+                        i++;
+                        let template = $(".individualMessageTemplate").clone();
+                        template.removeClass("individualMessageTemplate");
+                        template.addClass("individualMessage");
+                        template.find(".messageTitle").text(`Message #${i} ${message.name}:`);
+                        template.find(".messageText").val(message.mes);
+                        $("#menuItems").append(template);
+                    }
+                }
+            }
+            else {
+                $("#chatButtons").hide();
+            }
         }
 
         function goBackCharacterPage() {
@@ -320,41 +406,20 @@
     </script>
 
     <script>
-        function sillyTavern(jsonlData) {
+        function sillyTavern(jsonlData, userName, characterName) {
             let data = [];
-            let userName = "";
-            let characterName = "";
 
             for (let line of jsonlData) {
                 data.push(line);
             }
 
             let newData = {
-                data: {},
+                data: {
+                    username: userName,
+                    characterName: characterName,
+                },
                 messages: [],
             };
-
-            for (let line of data) {
-                if ("user_name" in line) {
-                    userName = line["user_name"];
-                }
-                if ("character_name" in line) {
-                    characterName = line["character_name"];
-                }
-                if ("name" in line && "is_user" in line) {
-                    if (line["is_user"] === true) {
-                        userName = line["name"];
-                    } else {
-                        characterName = line["name"];
-                    }
-                }
-                if (userName && characterName) {
-                    break;
-                }
-            }
-
-            newData.data.username = userName;
-            newData.data.characterName = characterName;
 
             for (let line of data) {
                 if ("user_name" in line && "character_name" in line) {
@@ -365,8 +430,12 @@
                     if (typeof line["send_date"] === "string") {
                         sendDate = timeToMilliseconds(line["send_date"]);
                     }
+                    let name = characterName;
+                    if (line["is_user"]) {
+                        name = userName;
+                    }
                     let fileMessage = {
-                        name: line["name"],
+                        name: name,
                         is_user: line["is_user"],
                         send_date: sendDate,
                         mes: line["mes"],
@@ -379,22 +448,11 @@
             return newData;
         }
 
-        function moemate(jsonData, userName = "", characterName = "") {
+        function moemate(jsonData, userName, characterName) {
             let data = jsonData;
-
-            if (userName === "") {
-                return "user_name";
-            }
 
             let messages = data.conversations || [];
             let newMessages = [];
-
-            for (let message of messages) {
-                if (!("language" in message)) {
-                    characterName = message.user;
-                    break;
-                }
-            }
 
             for (let message of messages) {
                 let sendDate = message.timestamp;
@@ -434,13 +492,13 @@
             return newData;
         }
 
-        function risu(jsonData, userName = "", characterName = "") {
+        function risu(jsonData, userName, characterName) {
             let data = jsonData;
 
-            if (userName === "") {
+            if (!userName) {
                 return "user_name";
             }
-            if (characterName === "") {
+            if (!characterName) {
                 return "character_name";
             }
 
@@ -474,29 +532,13 @@
             return newData;
         }
 
-        function agnai(inputData, characterName = "") {
+        function agnai(inputData, userName, characterName) {
             if (characterName === "") {
                 return { user_name: true };
             }
 
             let data = inputData;
-            let user_name = "";
             let newMessages = [];
-
-            for (let message of data.messages) {
-                if ("handle" in message) {
-                    user_name = message.handle;
-                    break;
-                }
-            }
-
-            let newData = {
-                data: {
-                    username: user_name,
-                    characterName: characterName,
-                },
-                messages: newMessages,
-            };
 
             let sendDate = new Date().toISOString();
             let scenarioMsg = data.greeting || "";
@@ -536,7 +578,35 @@
                 }
             }
 
+            let newData = {
+                data: {
+                    username: user_name,
+                    characterName: characterName,
+                },
+                messages: newMessages,
+            };
+
             return newData;
+        }
+
+
+        function convertToTurtle(data, userName, characterName, isJsonL) {
+            const platform = determinePlatform(data, isJsonL);
+            if (platform === "agnai") {
+                return agnai(data, userName, characterName);
+            }
+            if (platform === "risu") {
+                return risu(data, userName, characterName);
+            }
+            if (platform === "moemate") {
+                return moemate(data, userName, characterName);
+            }
+            if (platform === "sillytavern") {
+                return sillyTavern(data, userName, characterName);
+            }
+            if (platform === "unknown") {
+                return null;
+            }
         }
         function convertTimestampToFormattedString(timestampMilliseconds) {
             let timestampSeconds = timestampMilliseconds / 1000;
