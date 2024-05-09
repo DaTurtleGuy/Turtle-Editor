@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js"></script>
+    <script src="https://kit.fontawesome.com/f623b0cb4c.js" crossorigin="anonymous"></script>
+    <title>PNG Parser and Generator</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: black;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+        }
+
+        .button {
+            font-size: 24px;
+            color: white;
+            background-color: black;
+            border: 2px solid white;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+        }
+
+        .button:hover {
+            background-color: grey;
+        }
+
+        .select_button {
+            width: 200px;
+            height: 50px;
+        }
+
+        .go_back_button {
+            width: 30px;
+            height: 30px;
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 10;
+        }
+
+        .chats_page,
+        .characters_page {
+            display: none;
+            color: white;
+            width: 100%;
+            height: 100%;
+        }
+
+        .button_container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: flex;
+            flex-direction: row;
+            gap: 20px;
+        }
+
+        .tittle_container {
+            color: white;
+            position: fixed;
+            display: flex;
+            justify-content: center;
+            width: 100%;
+            top: 30%;
+        }
+
+        .tittle,
+        .chats_title {
+            font-size: 48px;
+            font-weight: bold;
+            text-align: center;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .centered {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .chats_page_container,
+        .characters_page_container {
+            width: 70%;
+            height: 90%;
+            border: 2px solid white;
+            border-radius: 10px;
+            transition: all 0.2s ease-in-out;
+        }
+
+        .chats_title {
+            margin-top: 20px;
+            margin-bottom: 20px;
+        }
+
+        .structuredInputSection {
+            max-width: 90%;
+            margin-bottom: 10px;
+        }
+
+        .sectionLabel {
+            margin-top: 0;
+        }
+
+        .custom-file-upload {
+            display: inline-flex;
+            justify-content: center;
+            margin-left: 10px;
+            min-height: fit-content;
+            min-width: fit-content;
+            padding: 5px;
+        }
+
+        .inputField {
+            width: 100%;
+            height: 100%;
+            border: 1px solid lightgrey;
+            background-color: #121212;
+            color: #e0e0e0;
+            border-radius: 3px;
+            padding: 0.25rem;
+        }
+
+        .sectionsContainer {
+            position: relative;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80%;
+            margin-top: 30px;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        @media screen and (max-width: 600px) {
+            .button_container {
+                flex-direction: column;
+                gap: 30px;
+            }
+
+            .select_button {
+                width: 400px;
+                height: 100px;
+                font-size: 30px;
+            }
+
+            .tittle_container {
+                top: 10%;
+            }
+
+            .chats_page_container,
+            .characters_page_container {
+                width: 100%;
+                height: 100%;
+                border: none;
+                overflow: hidden;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="tittle_container" style="display: none">
+        <div class="tittle">What would you like to edit?</div>
+    </div>
+
+    <div class="button_container" style="display: none">
+        <button class="select_button button" id="edit_chat">Chats</button>
+        <button class="select_button button" id="edit_character">
+            Characters
+        </button>
+    </div>
+    <div class="chats_page">
+        <button class="go_back_button button fa fa-angle-left" id="go_back_button" onclick="goBackChatsPage()"></button>
+        <div class="chats_page_container centered">
+            <div class="chats_title">Chats Page</div>
+            <div style="width: 100%">
+                <label for="chat_upload" class="custom-file-upload button fa fa-upload"></label>
+                <input id="chat_upload" type="file" />
+                <div style="display: inline-flex; margin-left: 10px">
+                    Upload a chat file
+                </div>
+            </div>
+
+            <div class="sectionsContainer">
+                <div id="currentName" class="sectionLabel"></div>
+                <section class="structuredInputSection" data-is-hidden-extra="no">
+                    <div class="sectionLabel">User name:</div>
+                    <div>
+                        <input class="inputField" id="userNameInput" data-initial-focus="no" value="" type="text"
+                            placeholder="" />
+                    </div>
+                </section>
+                <section class="structuredInputSection" data-is-hidden-extra="no">
+                    <div class="sectionLabel">Character name:</div>
+                    <div>
+                        <input class="inputField" data-initial-focus="no" id="characterNameInput" value="" type="text"
+                            placeholder="Enter character name" />
+                    </div>
+                </section>
+            </div>
+        </div>
+    </div>
+
+    <div class="characters_page">
+        <button class="go_back_button button fa fa-angle-left" id="go_back_button"
+            onclick="goBackCharacterPage()"></button>
+        Characters Page
+    </div>
+
+    <script>
+        $(document).ready(function () {
+            showSelectButtons();
+            $("#edit_character").on("click", function () {
+                hideSelectButtons(function () {
+                    showCharactersPage();
+                });
+            });
+            $("#edit_chat").on("click", function () {
+                hideSelectButtons(function () {
+                    showChatsPage();
+                });
+            });
+            $("#chat_upload").on("change", loadChatFile);
+        });
+
+        function loadChatFile() {
+            const file = $("#chat_upload")[0].files[0];
+            const reader = new FileReader();
+
+            reader.onload = function (event) {
+                const fileContent = event.target.result;
+
+                // Check if the file type is JSONL
+                const isJsonL = file.name.endsWith(".jsonl");
+                debugger;
+
+                // Parse JSON content
+                let jsonData;
+                if (isJsonL) {
+                    // Split file content into lines
+                    const lines = fileContent.trim().split("\n");
+
+                    // Parse each line as JSON
+                    jsonData = lines.map((line) => JSON.parse(line));
+                } else {
+                    // Otherwise, parse the entire content as JSON
+                    jsonData = JSON.parse(fileContent);
+                }
+                // Assuming each line contains the same structure, you can access properties from the first line
+                const names = getNames(jsonData, isJsonL);
+                $("#userNameInput").val(names.username);
+                $("#characterNameInput").val(names.characterName);
+                $("#currentName").text(`Current Platform: ${names.platform}`);
+            };
+
+            reader.readAsText(file);
+        }
+
+        function goBackCharacterPage() {
+            hideCharactersPage(function () {
+                showSelectButtons();
+            });
+        }
+        function goBackChatsPage() {
+            hideChatsPage(function () {
+                showSelectButtons();
+            });
+        }
+
+        function hideSelectButtons(callback) {
+            $(".tittle_container").fadeOut(200);
+            $(".button_container").fadeOut(200, function () {
+                if (typeof callback === "function") {
+                    callback();
+                }
+            });
+        }
+
+        function showSelectButtons(callback) {
+            $(".tittle_container").fadeIn(300);
+            $(".button_container").fadeIn(300, function () {
+                if (typeof callback === "function") {
+                    callback();
+                }
+            });
+        }
+
+        function showCharactersPage() {
+            $(".characters_page").fadeIn(200);
+        }
+        function hideCharactersPage(callback) {
+            $(".characters_page").fadeOut(200, function () {
+                if (typeof callback === "function") {
+                    callback();
+                }
+            });
+        }
+
+        function showChatsPage() {
+            $(".chats_page").fadeIn(200);
+        }
+
+        function hideChatsPage(callback) {
+            $(".chats_page").fadeOut(200, function () {
+                if (typeof callback === "function") {
+                    callback();
+                }
+            });
+        }
+    </script>
+
+    <script>
+        function sillyTavern(jsonlData) {
+            let data = [];
+            let userName = "";
+            let characterName = "";
+
+            for (let line of jsonlData) {
+                data.push(line);
+            }
+
+            let newData = {
+                data: {},
+                messages: [],
+            };
+
+            for (let line of data) {
+                if ("user_name" in line) {
+                    userName = line["user_name"];
+                }
+                if ("character_name" in line) {
+                    characterName = line["character_name"];
+                }
+                if ("name" in line && "is_user" in line) {
+                    if (line["is_user"] === true) {
+                        userName = line["name"];
+                    } else {
+                        characterName = line["name"];
+                    }
+                }
+                if (userName && characterName) {
+                    break;
+                }
+            }
+
+            newData.data.username = userName;
+            newData.data.characterName = characterName;
+
+            for (let line of data) {
+                if ("user_name" in line && "character_name" in line) {
+                    continue;
+                }
+                if ("name" in line && "is_user" in line) {
+                    let sendDate = "";
+                    if (typeof line["send_date"] === "string") {
+                        sendDate = timeToMilliseconds(line["send_date"]);
+                    }
+                    let fileMessage = {
+                        name: line["name"],
+                        is_user: line["is_user"],
+                        send_date: sendDate,
+                        mes: line["mes"],
+                        swipes: line["swipes"] ? line["swipes"] : [],
+                    };
+                    newData.messages.push(fileMessage);
+                }
+            }
+
+            return newData;
+        }
+
+        function moemate(jsonData, userName = "", characterName = "") {
+            let data = jsonData;
+
+            if (userName === "") {
+                return "user_name";
+            }
+
+            let messages = data.conversations || [];
+            let newMessages = [];
+
+            for (let message of messages) {
+                if (!("language" in message)) {
+                    characterName = message.user;
+                    break;
+                }
+            }
+
+            for (let message of messages) {
+                let sendDate = message.timestamp;
+                let msg = message.value;
+                let swipes = message.regeneratingMessages
+                    ? message.regeneratingMessages.map((thing) => thing.value)
+                    : [];
+
+                let fileMessage = {
+                    name: userName,
+                    is_user: true,
+                    send_date: sendDate,
+                    mes: msg,
+                    swipes: [],
+                };
+
+                if ("language" in message) {
+                    newMessages.push(fileMessage);
+                    continue;
+                }
+
+                fileMessage.is_user = false;
+                fileMessage.name = characterName;
+                fileMessage.swipes = swipes;
+
+                newMessages.push(fileMessage);
+            }
+
+            let newData = {
+                data: {
+                    username: userName,
+                    characterName: characterName,
+                },
+                messages: newMessages,
+            };
+
+            return newData;
+        }
+
+        function risu(jsonData, userName = "", characterName = "") {
+            let data = jsonData;
+
+            if (userName === "") {
+                return "user_name";
+            }
+            if (characterName === "") {
+                return "character_name";
+            }
+
+            let messages = data.data.message || [];
+            let newMessages = [];
+
+            let newData = {
+                data: {
+                    username: userName,
+                    characterName: characterName,
+                },
+                messages: newMessages,
+            };
+
+            for (let message of messages) {
+                let role = message.role;
+                let sendDate = message.time;
+                let msg = message.data;
+
+                let fileMessage = {
+                    name: role === "user" ? userName : characterName,
+                    is_user: role === "user",
+                    send_date: sendDate,
+                    mes: msg,
+                    swipes: [],
+                };
+
+                newMessages.push(fileMessage);
+            }
+
+            return newData;
+        }
+
+        function agnai(inputData, characterName = "") {
+            if (characterName === "") {
+                return { user_name: true };
+            }
+
+            let data = inputData;
+            let user_name = "";
+            let newMessages = [];
+
+            for (let message of data.messages) {
+                if ("handle" in message) {
+                    user_name = message.handle;
+                    break;
+                }
+            }
+
+            let newData = {
+                data: {
+                    username: user_name,
+                    characterName: characterName,
+                },
+                messages: newMessages,
+            };
+
+            let sendDate = new Date().toISOString();
+            let scenarioMsg = data.greeting || "";
+
+            if (scenarioMsg) {
+                let jsonLineScenario = {
+                    name: characterName,
+                    is_user: false,
+                    send_date: sendDate,
+                    mes: scenarioMsg,
+                };
+                newMessages.push(jsonLineScenario);
+            }
+
+            for (let message of data.messages) {
+                if ("handle" in message) {
+                    user_name = message.handle;
+                    let msg = message.msg;
+                    let jsonLine = {
+                        name: user_name,
+                        is_user: true,
+                        send_date: sendDate,
+                        mes: msg,
+                        swipes: [],
+                    };
+                    newMessages.push(jsonLine);
+                } else if ("characterId" in message) {
+                    let msg = message.msg;
+                    let jsonLine = {
+                        name: characterName,
+                        is_user: false,
+                        send_date: sendDate,
+                        mes: msg,
+                        swipes: [],
+                    };
+                    newMessages.push(jsonLine);
+                }
+            }
+
+            return newData;
+        }
+        function convertTimestampToFormattedString(timestampMilliseconds) {
+            let timestampSeconds = timestampMilliseconds / 1000;
+            let datetimeObject = new Date(timestampSeconds * 1000);
+            let options = {
+                year: "numeric",
+                month: "long",
+                day: "2-digit",
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: true,
+            };
+            let formattedString = datetimeObject.toLocaleString("en-US", options);
+            return formattedString;
+        }
+
+        function getCurrentTime() {
+            let currentDateTime = new Date();
+            let millisecondsSinceEpoch = currentDateTime.getTime();
+            return millisecondsSinceEpoch;
+        }
+
+        function timeToMilliseconds(timeString) {
+            let parsedTime = new Date(timeString);
+            let millisecondsSinceEpoch = parsedTime.getTime();
+            return millisecondsSinceEpoch;
+        }
+        function determinePlatform(data, isJsonL) {
+            if (
+                data.hasOwnProperty("name") &&
+                data.hasOwnProperty("messages") &&
+                data.hasOwnProperty("greeting") &&
+                data.hasOwnProperty("sampleChat") &&
+                data.hasOwnProperty("scenario")
+            ) {
+                let messages = data.messages;
+                if (data.name === "Exported" && Array.isArray(messages)) {
+                    for (let message of messages) {
+                        if (message.hasOwnProperty("characterId")) {
+                            return "agnai";
+                        }
+                    }
+                }
+            }
+
+            if (data.hasOwnProperty("type") && data.type === "risuChat") {
+                return "risu";
+            }
+
+            if (
+                data.hasOwnProperty("memories") &&
+                data.hasOwnProperty("conversations")
+            ) {
+                for (let item of data.conversations) {
+                    if (
+                        item.hasOwnProperty("user") &&
+                        item.hasOwnProperty("type") &&
+                        item.hasOwnProperty("uniqueID")
+                    ) {
+                        return "moemate";
+                    }
+                }
+            }
+            if (isJsonL) {
+                for (let item of data) {
+                    if (
+                        item.hasOwnProperty("user_name") &&
+                        item.hasOwnProperty("character_name") &&
+                        item.hasOwnProperty("chat_metadata")
+                    ) {
+                        return "sillytavern";
+                    } else if (
+                        item.hasOwnProperty("name") &&
+                        item.hasOwnProperty("is_user") &&
+                        item.hasOwnProperty("is_name") &&
+                        item.hasOwnProperty("send_date") &&
+                        item.hasOwnProperty("mes")
+                    ) {
+                        return "sillytavern";
+                    }
+
+                    return "unknown";
+                }
+            }
+        }
+        function convertFromTurtle(turtleData, platform) {
+            if (platform === "risu") {
+                let newMessages = [];
+                for (let message of turtleData.messages) {
+                    if (message.is_user === true) {
+                        newMessages.push({
+                            role: "user",
+                            data: message.mes,
+                            time: message.send_date,
+                            chatId: generateUuidFromString(message.mes),
+                        });
+                    } else if (message.is_user === false) {
+                        newMessages.push({
+                            role: "char",
+                            data: message.mes,
+                            saying: generateUuidFromString(turtleData.data.characterName),
+                            time: message.send_date,
+                            generationInfo: {
+                                model: "gpt-3.5-turbo",
+                                generationId: generateUuidFromString(
+                                    message.mes + " " + turtleData.data.characterName
+                                ),
+                            },
+                            chatId: generateUuidFromString(message.mes),
+                        });
+                    }
+                }
+                let newData = {
+                    type: "risuChat",
+                    ver: 1,
+                    data: {
+                        messages: newMessages,
+                        note: "",
+                        name: turtleData.name,
+                        localLore: [],
+                        lastMemory: "NewChat",
+                        isStream: false,
+                    },
+                };
+                return newData;
+            } else if (platform === "moemate") {
+                let newConversations = [];
+                for (let message of turtleData.messages) {
+                    newConversations.push({
+                        user: message.is_user ? "@user" : turtleData.data.characterName,
+                        type: "TEXT",
+                        timestamp: message.send_date,
+                        value: message.mes,
+                        language: "English",
+                        texts: [
+                            {
+                                value: message.mes,
+                                isCodeBlock: false,
+                            },
+                        ],
+                    });
+                }
+                let newData = {
+                    memories: [],
+                    conversations: newConversations,
+                };
+                return newData;
+            } else if (platform === "sillytavern") {
+                let dataLines = [];
+                dataLines.push({
+                    user_name: turtleData.data.username,
+                    character_name: turtleData.data.characterName,
+                    chat_metadata: {
+                        note_prompt: "",
+                        note_interval: 1,
+                        note_position: 1,
+                        note_depth: 1,
+                        objetive: {
+                            objective: "",
+                            tasks: [],
+                            checkFrequency: "3",
+                            chatDepth: "2",
+                            hideTasks: false,
+                        },
+                    },
+                });
+                for (let message of turtleData.messages) {
+                    let jsonLine = {
+                        name: message.name,
+                        is_user: message.is_user,
+                        is_name: true,
+                        send_date: convertTimestampToFormattedString(message.send_date),
+                        mes: message.mes,
+                        extra: {},
+                    };
+                    if (!message.is_user) {
+                        jsonLine.swipe_id = 0;
+                        jsonLine.swipes = message.swipes;
+                    }
+                    dataLines.push(jsonLine);
+                }
+                let newData = dataLines.join("\n") + "\n";
+                return newData;
+            } else if (platform === "agnai") {
+                let newMessages = [];
+                for (let message of turtleData.messages) {
+                    newMessages.push({
+                        handle: turtleData.data.username,
+                        userId: "",
+                        msg: message.mes,
+                        state: "edited",
+                    });
+                }
+                let newData = {
+                    name: "Exported",
+                    greeting: "",
+                    sampleChat: "",
+                    scenario: "",
+                    messages: newMessages,
+                };
+                return newData;
+            }
+        }
+
+        function getNames(data, isJsonL) {
+            let platform = determinePlatform(data, isJsonL);
+            let output = {
+                platform: platform,
+                username: "",
+                characterName: "",
+            };
+            if (platform === "agnai") {
+                let messages = data.messages;
+                for (let message of messages) {
+                    if (message.hasOwnProperty("handle")) {
+                        output.username = message.handle;
+                        return output;
+                    }
+                }
+            }
+            if (platform === "risu") {
+                return output;
+            }
+            if (platform === "sillytavern") {
+                for (let message of data) {
+
+
+                    if (message.hasOwnProperty("user_name")) {
+                        output.username = message.user_name;
+                    }
+                    if (message.hasOwnProperty("character_name")) {
+                        output.characterName = message.character_name;
+                    }
+                    if (message.hasOwnProperty("name")) {
+                        if (message.is_user) {
+                            output.username = message.name;
+                        } else if (message.is_user === false) {
+                            output.characterName = message.name;
+                        }
+                    }
+                    if (output.username !== "" && output.characterName !== "") {
+                        return output;
+                    }
+
+                    return output;
+                }
+            }
+            if (platform === "moemate") {
+                messages = data.conversations;
+                for (let message of messages) {
+                    if (!message.hasOwnProperty("language")) {
+                        output.characterName = message.user;
+                        return output;
+                    }
+                }
+            }
+        }
+    </script>
+</body>
+
+</html>

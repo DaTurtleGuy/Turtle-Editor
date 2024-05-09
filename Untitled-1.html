@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Platform Detection Test</title>
+</head>
+
+<body>
+    <h1>Platform Detection Test</h1>
+
+    <input type="file" id="fileInput" accept=".json,.jsonl" onchange="handleFile(this.files)">
+
+    <script>
+        function determinePlatform(data) {
+            if (data.hasOwnProperty('name') && data.hasOwnProperty('messages') && data.hasOwnProperty('greeting') && data.hasOwnProperty('sampleChat') && data.hasOwnProperty('scenario')) {
+                let messages = data.messages;
+                if (data.name === "Exported" && Array.isArray(messages)) {
+                    for (let message of messages) {
+                        if (message.hasOwnProperty('characterId')) {
+                            return "agnai";
+                        }
+                    }
+                }
+            }
+
+            if (data.hasOwnProperty('type') && data.type === "risuChat") {
+                return "risu";
+            }
+
+            if (data.hasOwnProperty('memories') && data.hasOwnProperty('conversations')) {
+                for (let item of data.conversations) {
+                    if (item.hasOwnProperty('user') && item.hasOwnProperty('type') && item.hasOwnProperty('uniqueID')) {
+                        return "moemate";
+                    }
+                }
+            }
+
+            if (data.hasOwnProperty('user_name') && data.hasOwnProperty('character_name') && data.hasOwnProperty('chat_metadata')) {
+                return "sillytavern";
+            } else if (data.hasOwnProperty('name') && data.hasOwnProperty('is_user') && data.hasOwnProperty('is_name') && data.hasOwnProperty('send_date') && data.hasOwnProperty('mes')) {
+                return "sillytavern";
+            }
+
+            return "unknown";
+        }
+
+
+        function handleFile(files) {
+            const file = files[0];
+            const reader = new FileReader();
+
+            reader.onload = function (event) {
+                const fileContent = event.target.result;
+                try {
+                    if (file.name.endsWith('.jsonl')) {
+                        const lines = fileContent.split('\n');
+                        for (let line of lines) {
+                            if (line.trim() !== '') {
+                                const parsedData = JSON.parse(line);
+                                const platform = determinePlatform(parsedData);
+                                alert("Detected platform: " + platform);
+                                break;
+                            }
+                        }
+                    } else {
+                        const parsedData = JSON.parse(fileContent);
+                        const platform = determinePlatform(parsedData);
+                        alert("Detected platform: " + platform);
+                    }
+                } catch (error) {
+                    alert("Error parsing JSON file: " + error);
+                }
+            };
+
+            reader.readAsText(file);
+        }
+    </script>
+</body>
+
+</html>
