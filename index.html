@@ -6,6 +6,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.0/jquery.min.js"></script>
     <script src="https://kit.fontawesome.com/f623b0cb4c.js" crossorigin="anonymous"></script>
+    <script src="https://momentjs.com/downloads/moment.js" type="text/javascript"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
     <title>PNG Parser and Generator</title>
     <style>
         body {
@@ -15,6 +18,7 @@
             font-family: Arial, sans-serif;
             overflow: hidden;
         }
+
 
         .button {
             font-size: 24px;
@@ -93,7 +97,6 @@
             height: 90%;
             border: 2px solid white;
             border-radius: 10px;
-            transition: all 0.2s ease-in-out;
         }
 
         .chats_title {
@@ -139,6 +142,7 @@
             padding: 10px;
             animation: slideDown 0.5s ease-in-out forwards;
             overflow-y: auto;
+            overflow-x: hidden;
             -webkit-font-smoothing: antialiased;
         }
 
@@ -164,6 +168,31 @@
             overflow-y: scroll;
             resize: none;
             font-size: 16px;
+        }
+
+        .deployable_menu_wrapper {
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+            flex-grow: 1;
+            gap: 10px;
+        }
+
+        .deployable_menu_wrapper button {
+            min-width: 45%;
+        }
+
+        .convert_menu_buttons_container {
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            max-width: 100%;
+            width: 90%;
+            height: 300px;
+            height: fit-content;
+            margin-top: 10px;
         }
 
         @media screen and (max-width: 600px) {
@@ -239,9 +268,23 @@
                     </div>
                 </section>
                 <div class="deployable_menu">
-                    <button id="chatButtons" class="button" style="font-size: 15px; display: none;">Show
-                        Individual Messages</button>
-                    <div id="menuItems" class="menuItems">
+                    <div class="deployable_menu_wrapper">
+                        <button id="chatButtons" class="button" style="font-size: 15px; display: none;">Show Individual
+                            Messages</button>
+                        <button id="convertButton" class="button"
+                            style="font-size: 15px; display: none;">Convert</button>
+                    </div>
+                    <div id="menuItems" class="menuItems"></div>
+                </div>
+
+                <div class="convert_menu" style="display: none">
+                    <div class="convert_menu_title">To what format?</div>
+                    <div class="convert_menu_buttons_container">
+                        <button id="stbutton" class="button">Silly Tavern</button>
+                        <button id="agnaibutton" class="button">Agnai</button>
+                        <button id="moematebutton" class="button">Moemate</button>
+                        <button id="risubutton" class="button"><del>Risu</del></button>
+                        <button id="ttbutton" class="button">TurtleFile</button>
                     </div>
                 </div>
             </div>
@@ -256,6 +299,7 @@
     <script>
         let isJsonLGlobal = false;
         let dataGlobal = null;
+        let turtleGlobalData = null;
         $(document).ready(function () {
             showSelectButtons();
             $("#edit_character").on("click", function () {
@@ -270,6 +314,8 @@
             });
             $("#chat_upload").on("change", loadChatFile);
 
+
+
             $("#userNameInput").on("input", function () {
                 updateShowMessagesButton(dataGlobal, isJsonLGlobal);
             });
@@ -279,15 +325,52 @@
 
 
             $("#chatButtons").click(function () {
-                $("#menuItems").fadeToggle(300, function () {
+                $("#menuItems").slideToggle(300, function () {
                     let buttonText = $("#chatButtons").text();
                     $("#chatButtons").text(buttonText === "Hide Individual Messages" ? "Show Individual Messages" : "Hide Individual Messages");
                 });
 
             });
+
+            $("#convertButton").click(function () {
+                convertQuestion();
+            });
+
+            $("#ttbutton").click(function () {
+                const messages = getMessages();
+                const newData = {
+                    dataType: "TurtleFile",
+                    data: turtleGlobalData.data,
+                    messages: messages
+                }
+                const fileName = getFileName("TurtleFile");
+                downloadDictAsFile(newData, "JSON", fileName);
+            });
         });
 
 
+        function getFileName(platform) {
+            const characterName = $("#characterNameInput").val();
+            return `${platform}_${characterName}`;
+        }
+
+
+
+        function convertQuestion() {
+            $(".deployable_menu").fadeOut(300, function () {
+                $(".convert_menu").fadeIn(300);
+            });
+        }
+
+        function showInfo(text) {
+            Toastify({
+                text: text,
+                className: "info",
+                style: {
+                    background: "linear-gradient(to right, grey, black)",
+                }
+            }).showToast();
+        }
 
 
         function loadChatFile() {
@@ -326,30 +409,55 @@
         }
 
         function updateShowMessagesButton(data, isJsonL) {
+            $(".convert_menu").fadeOut(300, function () {
+                $(".deployable_menu").fadeIn(300);
+            })
             const username = $("#userNameInput").val();
             const characterName = $("#characterNameInput").val();
             const currentName = $("#currentName").text();
             if (username && characterName && currentName) {
                 $("#chatButtons").fadeIn(500);
+                $("#convertButton").fadeIn(500);
                 $("#menuItems").empty();
 
                 const convertedData = convertToTurtle(data, username, characterName, isJsonL);
+                turtleGlobalData = convertedData;
                 if (convertedData) {
                     let i = 0;
+                    console.log(JSON.stringify(convertedData));
+
                     for (let message of convertedData.messages) {
                         i++;
                         let template = $(".individualMessageTemplate").clone();
                         template.removeClass("individualMessageTemplate");
                         template.addClass("individualMessage");
+                        template.attr("id", i);
+                        template.attr("isUser", message.is_user);
                         template.find(".messageTitle").text(`Message #${i} ${message.name}:`);
                         template.find(".messageText").val(message.mes);
+                        template.attr("date", message.send_date);
                         $("#menuItems").append(template);
                     }
                 }
             }
             else {
                 $("#chatButtons").hide();
+                $("#convertButton").hide();
             }
+        }
+
+        function getMessages() {
+            let messages = [];
+            $(".individualMessage").each(function () {
+                let message = {
+                    is_user: $(this).attr("isUser"),
+                    name: $(this).find(".messageTitle").text().replace("Message #" + $(this).attr("id") + " ", "").replace(":", ""),
+                    mes: $(this).find(".messageText").val(),
+                    send_date: $(this).attr("date")
+                };
+                messages.push(message);
+            });
+            return messages;
         }
 
         function goBackCharacterPage() {
@@ -358,9 +466,24 @@
             });
         }
         function goBackChatsPage() {
-            hideChatsPage(function () {
-                showSelectButtons();
-            });
+            if ($(".convert_menu").is(":visible")) {
+                $(".convert_menu").fadeOut(300, function () {
+                    $(".deployable_menu").fadeIn(300);
+                });
+            }
+            else {
+                hideChatsPage(function () {
+                    showSelectButtons();
+                    $("#userNameInput").val("");
+                    $("#characterNameInput").val("");
+                    $("#currentName").text("");
+                    $(".convert_menu").hide();
+                    $("#chat_upload").files = null;
+                    $("#menuItems").empty();
+                    $("#chatButtons").hide();
+                    $("#convertButton").hide();
+                });
+            }
         }
 
         function hideSelectButtons(callback) {
@@ -414,6 +537,7 @@
             }
 
             let newData = {
+                dataType: "TurtleFile",
                 data: {
                     username: userName,
                     characterName: characterName,
@@ -482,6 +606,7 @@
             }
 
             let newData = {
+                dataType: "TurtleFile",
                 data: {
                     username: userName,
                     characterName: characterName,
@@ -506,6 +631,7 @@
             let newMessages = [];
 
             let newData = {
+                dataType: "TurtleFile",
                 data: {
                     username: userName,
                     characterName: characterName,
@@ -540,7 +666,7 @@
             let data = inputData;
             let newMessages = [];
 
-            let sendDate = new Date().toISOString();
+            let sendDate = getCurrentTime();
             let scenarioMsg = data.greeting || "";
 
             if (scenarioMsg) {
@@ -579,6 +705,7 @@
             }
 
             let newData = {
+                dataType: "TurtleFile",
                 data: {
                     username: user_name,
                     characterName: characterName,
@@ -592,6 +719,9 @@
 
         function convertToTurtle(data, userName, characterName, isJsonL) {
             const platform = determinePlatform(data, isJsonL);
+            if (platform === "TurtleFile") {
+                return data;
+            }
             if (platform === "agnai") {
                 return agnai(data, userName, characterName);
             }
@@ -608,33 +738,11 @@
                 return null;
             }
         }
-        function convertTimestampToFormattedString(timestampMilliseconds) {
-            let timestampSeconds = timestampMilliseconds / 1000;
-            let datetimeObject = new Date(timestampSeconds * 1000);
-            let options = {
-                year: "numeric",
-                month: "long",
-                day: "2-digit",
-                hour: "2-digit",
-                minute: "2-digit",
-                hour12: true,
-            };
-            let formattedString = datetimeObject.toLocaleString("en-US", options);
-            return formattedString;
-        }
 
-        function getCurrentTime() {
-            let currentDateTime = new Date();
-            let millisecondsSinceEpoch = currentDateTime.getTime();
-            return millisecondsSinceEpoch;
-        }
-
-        function timeToMilliseconds(timeString) {
-            let parsedTime = new Date(timeString);
-            let millisecondsSinceEpoch = parsedTime.getTime();
-            return millisecondsSinceEpoch;
-        }
         function determinePlatform(data, isJsonL) {
+            if (data.dataType === "TurtleFile" && !isJsonL) {
+                return "TurtleFile";
+            }
             if (
                 data.hasOwnProperty("name") &&
                 data.hasOwnProperty("messages") &&
@@ -863,6 +971,79 @@
                     }
                 }
             }
+            if (platform === "TurtleFile") {
+                output.username = data.data.username;
+                output.characterName = data.data.characterName;
+                return output;
+            }
+        }
+
+
+
+        function timeToMilliseconds(timeString) {
+            // Parse the date string using your Silly Tavern format
+            const date = moment(timeString, "MMMM Do, YYYY h:mm a");
+            // Return milliseconds since epoch
+            return date.valueOf();
+        }
+
+        function convertTimestampToFormattedString(timestampMilliseconds) {
+            // Create a Moment object from milliseconds
+            const date = moment(timestampMilliseconds);
+            // Format the date and time using your desired format
+            return date.format("MMMM Do YYYY, h:mm a"); // "March 8th 2024, 10:30 AM" 
+        }
+
+        function getCurrentTime() {
+            // Get the current moment
+            const currentDateTime = moment();
+            // Return milliseconds since epoch
+            return currentDateTime.valueOf();
+        }
+        function downloadDictAsFile(dict, fileType, fileName) {
+            if (fileType !== 'JSON' && fileType !== 'JSONL') {
+                console.error('Invalid file type. Use "JSON" or "JSONL".');
+                return;
+            }
+
+            let dataStr;
+
+            if (fileType === 'JSON') {
+                dataStr = JSON.stringify(dict, null, 2);
+                fileName = `${fileName}.json`;
+            } else if (fileType === 'JSONL') {
+                dataStr = '';
+                if (Array.isArray(dict)) {
+                    dict.forEach(item => {
+                        dataStr += JSON.stringify(item) + '\n';
+                    });
+                } else {
+                    // Convert dictionary to array of single object to match JSONL format
+                    dataStr = JSON.stringify(dict) + '\n';
+                }
+                fileName = `${fileName}.jsonl`;
+            }
+
+            // Create a blob with the data
+            const blob = new Blob([dataStr], { type: 'application/json' });
+
+            // Create a link element
+            const link = document.createElement('a');
+
+            // Set the download attribute with the file name
+            link.download = fileName;
+
+            // Create a URL for the blob and set it as the href attribute
+            link.href = window.URL.createObjectURL(blob);
+
+            // Append the link to the body (required for Firefox)
+            document.body.appendChild(link);
+
+            // Programmatically click the link to trigger the download
+            link.click();
+
+            // Remove the link from the document
+            document.body.removeChild(link);
         }
     </script>
 </body>
