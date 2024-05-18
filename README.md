@@ -14,7 +14,6 @@
     * Risu (coming soon)
     * TurtleFile
 * **Mass replace functionality:** Replace text within your chat files quickly and efficiently.
-* **User-friendly interface:** Intuitive design with clear instructions for easy use.
 
 ## Installation
 
@@ -30,7 +29,7 @@ This tool is a web application and does not require any installation. Simply vis
 
 ## Contributing
 
-Contributions are welcome! Feel free to open issues or submit pull requests to enhance the tool.
+Honestly, I've still have no clue how to use github... So i dont do that for now lol
 
 ## License
 
