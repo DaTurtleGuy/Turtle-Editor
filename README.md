@@ -33,7 +33,7 @@ Honestly, I've still have no clue how to use github... So i dont do that for now
 
 ## License
 
-This project is licensed under the Do What The Fuck You Want To Public License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the Do What The Fuck You Want To Public License - see the [LICENSE](LICENSE.txt) file for details.
 
 ## Disclaimer
 
