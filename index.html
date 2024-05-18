@@ -9,6 +9,10 @@
     <script src="https://momentjs.com/downloads/moment.js" type="text/javascript"></script>
     <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+
+    <script
+        src="https://cdn.jsdelivr.net/combine/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js,npm/crc-32@1.2,gh/syonfox/GPT-3-Encoder@c3c2e2533a15645d812b5e6fcb00b75b74718161/browser.min.js"></script>
+    <script type="text/javascript" src="cardParser.js"></script>
     <title>Turtle Editor</title>
     <link rel="icon" type="image/png" href="icon.png">
     <style>
@@ -174,13 +178,26 @@
         .deployable_menu_wrapper {
             display: flex;
             flex-direction: row;
-            justify-content: space-between;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
             flex-grow: 1;
             gap: 10px;
         }
 
         .deployable_menu_wrapper button {
             min-width: 45%;
+        }
+
+        .deployable_menu {
+            display: flex;
+        }
+
+        .convert_menu {
+            width: 90%;
+            margin-top: 10px;
+            margin-left: auto;
+            margin-right: auto;
         }
 
         .convert_menu_buttons_container {
@@ -194,6 +211,18 @@
             height: 300px;
             height: fit-content;
             margin-top: 10px;
+        }
+
+        .replace_menu {
+            width: 90%;
+            margin-top: 10px;
+            border: 1px solid #ccc;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-y: auto;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+            display: none;
         }
 
         @media screen and (max-width: 600px) {
@@ -274,19 +303,39 @@
                             Messages</button>
                         <button id="convertButton" class="button"
                             style="font-size: 15px; display: none;">Convert</button>
-                    </div>
-                    <div id="menuItems" class="menuItems"></div>
-                </div>
 
-                <div class="convert_menu" style="display: none">
-                    <div class="convert_menu_title">To what format?</div>
-                    <div class="convert_menu_buttons_container">
-                        <button id="stbutton" class="button">Silly Tavern</button>
-                        <button id="agnaibutton" class="button">Agnai</button>
-                        <button id="moematebutton" class="button">Moemate</button>
-                        <button id="risubutton" class="button"><del>Risu</del></button>
-                        <button id="ttbutton" class="button">TurtleFile</button>
+                        <button id="replaceButton" class="button" style="font-size: 15px; display: none;">Mass
+                            Replace</button>
                     </div>
+                </div>
+                <div id="massReplaceMenu" class="replace_menu">
+                    <section class="structuredInputSection" data-is-hidden-extra="no">
+                        <div class="sectionLabel">Replace</div>
+                        <div>
+                            <input class="inputField" data-initial-focus="no" id="replaceInput" value="" type="text"
+                                placeholder="Enter text to replace" />
+                        </div>
+                    </section>
+                    <section class="structuredInputSection" data-is-hidden-extra="no">
+                        <div class="sectionLabel">With</div>
+                        <div>
+                            <input class="inputField" data-initial-focus="no" id="replaceWithInput" value="" type="text"
+                                placeholder="Enter text to replace with" />
+                        </div>
+                    </section>
+                    <button id="replaceButtonTrigger" class="button" style="font-size: 15px;">Replace</button>
+                </div>
+                <div id="menuItems" class="menuItems"></div>
+
+            </div>
+            <div class="convert_menu" style="display: none">
+                <div class="convert_menu_title">To what format?</div>
+                <div class="convert_menu_buttons_container">
+                    <button id="stbutton" class="button">Silly Tavern</button>
+                    <button id="agnaibutton" class="button">Agnai</button>
+                    <button id="moematebutton" class="button">Moemate</button>
+                    <button id="risubutton" class="button"><del>Risu</del></button>
+                    <button id="ttbutton" class="button">TurtleFile</button>
                 </div>
             </div>
         </div>
@@ -327,15 +376,38 @@
 
 
             $("#chatButtons").click(function () {
-                $("#menuItems").slideToggle(300, function () {
-                    let buttonText = $("#chatButtons").text();
-                    $("#chatButtons").text(buttonText === "Hide Individual Messages" ? "Show Individual Messages" : "Hide Individual Messages");
+                $("#massReplaceMenu").slideUp(300, function () {
+                    $("#menuItems").slideToggle(300, function () {
+                        let buttonText = $("#chatButtons").text();
+                        $("#chatButtons").text(buttonText === "Hide Individual Messages" ? "Show Individual Messages" : "Hide Individual Messages");
+                    });
                 });
 
             });
 
             $("#convertButton").click(function () {
                 convertQuestion();
+            });
+
+            $("#replaceButton").click(function () {
+                $("#menuItems").slideUp(300, function () {
+                    $("#massReplaceMenu").slideToggle(300);
+                })
+            });
+
+            $("#replaceButtonTrigger").click(function () {
+                $(".individualMessage").each(function () {
+                    let messageText = $(this).find(".messageText").val();
+                    let replaceText = $("#replaceInput").val();
+                    let replaceWithText = $("#replaceWithInput").val();
+                    $(this).find(".messageText").val(messageText.replace(replaceText, replaceWithText));
+                })
+                $("#replaceInput").val("");
+                $("#replaceWithInput").val("");
+
+                $("#massReplaceMenu").slideUp(300, function () {
+                    $("#menuItems").slideDown(300);
+                });
             });
 
             $("#ttbutton").click(function () {
@@ -382,7 +454,11 @@
 
         function convertQuestion() {
             $(".deployable_menu").fadeOut(300, function () {
-                $(".convert_menu").fadeIn(300);
+                $("#massReplaceMenu").slideUp(300, function () {
+                    $("#menuItems").slideUp(300, function () {
+                        $(".convert_menu").fadeIn(300);
+                    });
+                });
             });
         }
 
@@ -447,6 +523,8 @@
             if (username && characterName && currentName) {
                 $("#chatButtons").fadeIn(500);
                 $("#convertButton").fadeIn(500);
+                $("#replaceButton").fadeIn(500);
+                $("#massReplaceMenu").hide();
                 $("#menuItems").empty();
 
                 const convertedData = convertToTurtle(data, username, characterName, isJsonL);
@@ -470,6 +548,8 @@
             else {
                 $("#chatButtons").hide();
                 $("#convertButton").hide();
+                $("#replaceButton").hide();
+                $("#massReplaceMenu").hide();
             }
         }
 
@@ -505,10 +585,12 @@
                     $("#characterNameInput").val("");
                     $("#currentName").text("");
                     $(".convert_menu").hide();
-                    $("#chat_upload").files = null;
                     $("#menuItems").empty();
                     $("#chatButtons").hide();
+                    $("#replaceButton").hide();
                     $("#convertButton").hide();
+                    $("#massReplaceMenu").hide();
+                    $("#chat_upload").val("");
                 });
             }
         }
@@ -1080,6 +1162,9 @@
             document.body.removeChild(link);
         }
     </script>
+
+
+
 </body>
 
 </html>
